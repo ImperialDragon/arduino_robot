@@ -1,18 +1,20 @@
 #include "config.h"
 #include <Servo.h>
-Servo servo;
+
 //forward declaration
-void stop();
-void move();
-short getDistance();
-u8 getCurrentServoAngle();
-u8 getRobotMode();
+void stopMotors();
+void robotMove();
+uint16_t getDistance();
+uint8_t getServoPos();
+uint8_t getRobotMode();
+
 //variables
-u8 currentServoAngle;
-u8 robotMode;
-unsigned long millisSensor;
-unsigned long millisServo;
-void move(u8 direction, u8 speed)
+static Servo servo;
+static uint8_t servoPos;
+static uint8_t robotMode;
+static uint16_t distance = DEFAULT_DISTANCE;
+
+void robotMove(uint8_t direction, uint8_t speed)
 {
     switch(direction)
     {
@@ -41,6 +43,7 @@ void move(u8 direction, u8 speed)
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
             break;
         default:
+            stopMotors();
             break;
     }
 }
@@ -52,7 +55,7 @@ void changeRobotMode()
    */
 }
 
-void stop()
+void stopMotors()
 {
     digitalWrite(RIGHT_MOTOR_B1A_PIN, LOW);
     digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
@@ -67,41 +70,65 @@ void initialize()
     pinMode(LEFT_MOTOR_A1A_PIN, OUTPUT);
     pinMode(LEFT_MOTOR_A1B_PIN, OUTPUT);
     pinMode(SENSOR_TRIG_PIN, INPUT);
-    pinMode(SENSOR_ECHO_PIN, OUTPUT);
+    pinMode(SENSOR_ECHO_PIN, OUTPUT); 
     robotMode = MOVING_MODE;
-    millisSensor = 0;
-    millisServo = 0;
-    currentServoAngle = SERVO_LEFT;
-    servo.attach(1);
-    servo.write(SERVO_LEFT);                                                                                                           
+    servoPos = SERVO_FORWARD_TO_RIGHT;
+    servo.attach(SERVO_PIN);
+    servo.write(servoPos);                                                                                                           
 }
 
-void rotate_servo(u8 rotation_angle)
+void rotateServo(u8 rotation_angle)
 {
-    unsigned long millisCurrent = millis();
-    if (millisCurrent - millisServo > SERVO_DELAY)
-    {
-      millisServo = millisCurrent;
-      currentServoAngle = rotation_angle;
-      servo.write(rotation_angle);
-    }
+      servoPos = rotation_angle;
+      servo.write(servoPos);
 }
 
-short getDistance()
+void changeServoPos()
 {
-     /*Task: Implement ultransound signal sending(sensor) and get distance between robot and object.
+  switch (servoPos)
+  {
+    case SERVO_LEFT:
+      rotateServo(SERVO_FORWARD_TO_RIGHT);
+      break;
+    case SERVO_FORWARD_TO_LEFT:
+      rotateServo(SERVO_LEFT);
+      break;
+    case SERVO_FORWARD_TO_RIGHT:
+      rotateServo(SERVO_RIGHT);
+      break;
+    case SERVO_RIGHT:
+      rotateServo(SERVO_FORWARD_TO_LEFT);
+      break;
+    default:
+      rotateServo(SERVO_FORWARD_TO_RIGHT);
+      break;
+  }
+}
+
+void sensorScan()
+{
+  /*Task: Implement ultransound signal sending(sensor) and get distance between robot and object.
        Bonus task: Try to find any solution where you can remove delay(10);
-       Returning value of function is a distance between robot and object. Distance shoud be measured in cm
+       distance shoud assigned to variable distance
      */
-    return 0; 
 }
 
-u8 getCurrentServoAngle()
+void setDistance(int inDistance)
 {
-  return currentServoAngle;
+  distance = inDistance;
 }
 
-u8 getRobotMode()
+uint16_t getDistance()
+{
+  return distance;
+}
+
+uint8_t getServoPos()
+{
+  return servoPos;
+}
+
+uint8_t getRobotMode()
 {
   return robotMode;
 }

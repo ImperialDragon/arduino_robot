@@ -1,12 +1,11 @@
 #include "fsm.h"
-#include "config.h"
 void setup()
 {
    initialize();
-   init_robot_tasks();
+   initRobotTasks();
 }
 void loop()
 {
   realWorld();
-  run();
+  performTaskByState();
 }

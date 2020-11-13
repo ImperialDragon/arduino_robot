@@ -1,72 +1,145 @@
-#include <stdlib.h>
-#include "config.h"
 #include "robot_control.h"
-typedef void(*task)();
-task *tasks;
-u8 state = MOVE_FORWARD;
-u8 worldState = NO_OBJECTS;
-unsigned short distance = 0;
-void create_tasks(task *in_tasks)
+#include "tasklib.h"
+#include "config.h"
+//forward declaration
+void updateTime(uint64_t *millisCurrent);
+void performTask(task myTask, uint64_t millisCurrent, uint64_t *elapsedTime, uint64_t constant);
+void stopMoving();
+void moveForward();
+void moveBackward();
+void moveLeft();
+void moveRight();
+void servoScan();
+void initRobotTasks();
+void realWorld();
+void performTaskByState();
+
+//Variable declaration
+static uint8_t state = MOVE_FORWARD;
+static uint8_t worldState = NO_OBJECTS; 
+static uint64_t millisSensor = DEFAULT_VALUE;
+static uint64_t millisServo = DEFAULT_VALUE;
+static uint64_t millisStateTask = DEFAULT_VALUE;
+static uint64_t millisCurrent = DEFAULT_VALUE;
+void updateTime(uint64_t *millisVar)
 {
-  tasks = malloc(sizeof(in_tasks));
-  int count = sizeof(in_tasks) / sizeof(task);
-  for (int index = 0; index < count; index++)
+  *millisVar = millis();
+}
+
+void updateAllTime()
+{
+  updateTime(&millisCurrent);
+  updateTime(&millisSensor);
+  updateTime(&millisServo);
+  updateTime(&millisStateTask);
+}
+
+void performTask(task myTask, uint64_t millisCurrent, uint64_t *elapsedTime, uint64_t constant)
+{
+  if (millisCurrent - *elapsedTime > constant)
   {
-    tasks[index] = in_tasks[index];
+    *elapsedTime = millisCurrent;
+    myTask();
   }
 }
 
-void stop_moving()
+void stopMoving()
 {
-  stop();
-  state = CHOOSING_DIRECTION;
+  stopMotors();
+  if (getRobotMode() != STAND_MODE)
+  {
+    state = SERVO_SCAN;
+  }
 }
 
-void move_forward()
+void moveForward()
 {
-  if (worldState == OBJECT_IS_CLOSE)
+  if (worldState >= 1 && worldState <= 3)
   {
-    move(MOVE_FORWARD, NORMAL_MOTOR_SPEED);
+    state = STOP;
   }
   else
   {
-    move(MOVE_FORWARD, HIGH_MOTOR_SPEED);
+    robotMove(MOVE_FORWARD, HIGH_MOTOR_SPEED);
   }
 }
 
-void move_backward()
+void moveBackward()
 {
-  move(MOVE_BACKWARD, NORMAL_MOTOR_SPEED);
+  robotMove(MOVE_BACKWARD, NORMAL_MOTOR_SPEED);
 }
 
-void chooseDirection()
+void servoScan()
 {
-  
+  uint64_t millisCurrent = 0;
+  updateTime(&millisCurrent);
+  performTask(&changeServoPos, millisCurrent, &millisSensor, SERVO_DELAY);
 }
 
-void move_left()
+void moveLeft()
 {
-  move(MOVE_LEFT, SLOW_MOTOR_SPEED);
-}
-//if robot stoped, check getCurrentServoAngle() and then move depends on pos
-void move_right()
-{
-  move(MOVE_RIGHT, SLOW_MOTOR_SPEED);
+  robotMove(MOVE_LEFT, SLOW_MOTOR_SPEED);
 }
 
-
-void init_robot_tasks()
+void moveRight()
 {
-  task in_tasks[] = {&stop_moving, &move_forward, &move_backward, &move_left, &move_right};
-  create_tasks(in_tasks);
+  robotMove(MOVE_RIGHT, SLOW_MOTOR_SPEED);
 }
-//realWolrd stat
+
+void initRobotTasks()
+{
+  task inTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
+  createTasks(inTasks);
+}
+
 void realWorld()
 {
-  
+  uint8_t robotMode = getRobotMode();
+  updateTime(&millisCurrent);
+  performTask(&sensorScan, millisCurrent, &millisSensor, SENSOR_DELAY);
+  uint16_t curDistance = getDistance();
+  if (robotMode == MOVING_MODE)
+  {
+    if (curDistance <= COLLIDE_RANGE && curDistance >= 0)
+    {
+      switch(getServoPos())
+      {
+        case SERVO_LEFT:
+          worldState = OBJECT_ON_LEFT;
+          break;
+        case SERVO_FORWARD_TO_LEFT:
+        case SERVO_FORWARD_TO_RIGHT:
+          worldState = OBJECT_ON_FORWARD;
+          break;
+        case SERVO_RIGHT:
+          worldState = OBJECT_ON_RIGHT;
+          break;
+      }
+    }
+  }
+  else if (robotMode == STAND_MODE)
+  {
+    if (getServoPos() != SERVO_FORWARD_TO_LEFT)
+    {
+      rotateServo(SERVO_FORWARD_TO_LEFT);
+      updateAllTime();
+      setDistance(DEFAULT_DISTANCE);
+      curDistance = getDistance();
+    }
+    if (curDistance <= STANDMODE_COLLIDE_RANGE && curDistance != DEFAULT_DISTANCE)
+    {
+      state = MOVE_BACKWARD;
+      worldState = OBJECT_ON_FORWARD;
+    }
+    else
+    {
+      state = STOP;
+    }
+  }
 }
 
-void run()
+void performTaskByState()
 {
-  tasks[state]();
+  updateTime(&millisCurrent);
+  performTask(getTask(state), millisCurrent, &millisStateTask, CALL_TASK_DELAY);
 }
