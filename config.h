@@ -7,7 +7,8 @@
 #define SERVO_PIN 1
 #define SENSOR_TRIG_PIN 6
 #define SENSOR_ECHO_PIN 7
-
+#define MOVING_MODE_PIN 3
+#define STAND_MODE_PIN 4
 //Move directions and states
 #define STOP 0
 #define MOVE_FORWARD 1
