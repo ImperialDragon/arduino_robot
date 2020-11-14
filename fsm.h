@@ -1,6 +1,7 @@
 #include "robot_control.h"
-#include "tasklib.h"
 #include "config.h"
+typedef void(*task)(); 
+
 //forward declaration
 void updateTime(uint64_t *millisCurrent);
 void performTask(task myTask, uint64_t millisCurrent, uint64_t *elapsedTime, uint64_t constant);
@@ -23,8 +24,8 @@ static uint64_t millisSensor = DEFAULT_VALUE;
 static uint64_t millisServo = DEFAULT_VALUE;
 static uint64_t millisStateTask = DEFAULT_VALUE;
 static uint64_t millisCurrent = DEFAULT_VALUE;
-task stateTasks[] = {};
-task worldTasks[] = {};
+task stateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
+task worldTasks[] = {&movingModeWorld, &standModeWorld};
 void updateTime(uint64_t *millisVar)
 {
   *millisVar = millis();
@@ -88,14 +89,6 @@ void moveLeft()
 void moveRight()
 {
   robotMove(MOVE_RIGHT, SLOW_MOTOR_SPEED);
-}
-
-void initRobotTasks()
-{
-  task inStateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
-  task inWorldTasks[] = {&movingModeWorld, &standModeWorld};
-  createTasks(stateTasks, inStateTasks);
-  createTasks(worldTasks, inWorldTasks);
 }
 
 void movingModeWorld()
