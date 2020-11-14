@@ -13,6 +13,8 @@ void servoScan();
 void initRobotTasks();
 void realWorld();
 void performTaskByState();
+void movingModeWorld();
+void standModeWorld();
 
 //Variable declaration
 static uint8_t state = MOVE_FORWARD;
@@ -21,6 +23,8 @@ static uint64_t millisSensor = DEFAULT_VALUE;
 static uint64_t millisServo = DEFAULT_VALUE;
 static uint64_t millisStateTask = DEFAULT_VALUE;
 static uint64_t millisCurrent = DEFAULT_VALUE;
+task stateTasks[] = {};
+task worldTasks[] = {};
 void updateTime(uint64_t *millisVar)
 {
   *millisVar = millis();
@@ -88,19 +92,18 @@ void moveRight()
 
 void initRobotTasks()
 {
-  task inTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
-  createTasks(inTasks);
+  task inStateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
+  task inWorldTasks[] = {&movingModeWorld, &standModeWorld};
+  createTasks(stateTasks, inStateTasks);
+  createTasks(worldTasks, inWorldTasks);
 }
 
-void realWorld()
+void movingModeWorld()
 {
-  uint8_t robotMode = getRobotMode();
   updateTime(&millisCurrent);
   performTask(&sensorScan, millisCurrent, &millisSensor, SENSOR_DELAY);
   uint16_t curDistance = getDistance();
-  if (robotMode == MOVING_MODE)
-  {
-    if (curDistance <= COLLIDE_RANGE && curDistance >= 0)
+  if (curDistance <= COLLIDE_RANGE && curDistance >= 0)
     {
       switch(getServoPos())
       {
@@ -116,10 +119,14 @@ void realWorld()
           break;
       }
     }
-  }
-  else if (robotMode == STAND_MODE)
-  {
-    if (getServoPos() != SERVO_FORWARD_TO_LEFT)
+}
+
+void standModeWorld()
+{
+  updateTime(&millisCurrent);
+  performTask(&sensorScan, millisCurrent, &millisSensor, SENSOR_DELAY);
+  uint16_t curDistance = getDistance();
+  if (getServoPos() != SERVO_FORWARD_TO_LEFT)
     {
       rotateServo(SERVO_FORWARD_TO_LEFT);
       updateAllTime();
@@ -135,11 +142,15 @@ void realWorld()
     {
       state = STOP;
     }
-  }
+}
+
+void realWorld()
+{
+  worldTasks[worldState]();
 }
 
 void performTaskByState()
 {
   updateTime(&millisCurrent);
-  performTask(getTask(state), millisCurrent, &millisStateTask, CALL_TASK_DELAY);
+  performTask(stateTasks[state], millisCurrent, &millisStateTask, CALL_TASK_DELAY);
 }

@@ -13,6 +13,7 @@ static Servo servo;
 static uint8_t servoPos;
 static uint8_t robotMode;
 static uint16_t distance = DEFAULT_DISTANCE;
+static bool modeLock = false;
 
 void robotMove(uint8_t direction, uint8_t speed)
 {
@@ -48,11 +49,31 @@ void robotMove(uint8_t direction, uint8_t speed)
     }
 }
 
-void changeRobotMode()
+void checkRobotMode()
 {
-  /*Task: Implement robot mode changing Change robot mode.
-    - RESERVED PINS - 3,4, you shoud create constants in config.h with valid name
-   */
+   uint8_t readPin = (robotMode == MOVING_MODE)? STAND_MODE_PIN : MOVING_MODE_PIN;
+   uint8_t digitalValue = digitalRead(readPin);
+   if (modeLock == false && digitalValue == 1) modeLock = true;
+   else if(modeLock == true && digitalValue == 0) 
+   {
+    modeLock = false;
+    switch(readPin)
+    {
+      case STAND_MODE_PIN:
+        robotMode = STAND_MODE;
+        pinMode(STAND_MODE_PIN, OUTPUT);
+        pinMode(MOVING_MODE_PIN, INPUT);
+        digitalWrite(STAND_MODE_PIN, HIGH);
+        break;
+      case MOVING_MODE_PIN:
+        robotMode = MOVING_MODE;
+        pinMode(MOVING_MODE_PIN, OUTPUT);
+        pinMode(STAND_MODE_PIN, INPUT);
+        digitalWrite(MOVING_MODE_PIN, HIGH);
+        break;
+    }
+    Serial.print(robotMode);
+   }
 }
 
 void stopMotors()
@@ -65,12 +86,16 @@ void stopMotors()
 
 void initialize()
 {
+    Serial.begin(9600);
     pinMode(RIGHT_MOTOR_B1B_PIN, OUTPUT);
     pinMode(RIGHT_MOTOR_B1A_PIN, OUTPUT);
     pinMode(LEFT_MOTOR_A1A_PIN, OUTPUT);
     pinMode(LEFT_MOTOR_A1B_PIN, OUTPUT);
     pinMode(SENSOR_TRIG_PIN, INPUT);
-    pinMode(SENSOR_ECHO_PIN, OUTPUT); 
+    pinMode(SENSOR_ECHO_PIN, OUTPUT);
+    pinMode(MOVING_MODE_PIN, OUTPUT);
+    pinMode(STAND_MODE_PIN, INPUT); 
+    digitalWrite(MOVING_MODE_PIN, HIGH);
     robotMode = MOVING_MODE;
     servoPos = SERVO_FORWARD_TO_RIGHT;
     servo.attach(SERVO_PIN);
