@@ -53,8 +53,8 @@ void checkRobotMode()
 {
    uint8_t readPin = (robotMode == MOVING_MODE)? STAND_MODE_PIN : MOVING_MODE_PIN;
    uint8_t digitalValue = digitalRead(readPin);
-   if (modeLock == false && digitalValue == 1) modeLock = true;
-   else if(modeLock == true && digitalValue == 0) 
+   if (modeLock == false && digitalValue == HIGH) modeLock = true;
+   else if(modeLock == true && digitalValue == LOW) 
    {
     modeLock = false;
     switch(readPin)
@@ -96,6 +96,7 @@ void initialize()
     pinMode(MOVING_MODE_PIN, OUTPUT);
     pinMode(STAND_MODE_PIN, INPUT); 
     digitalWrite(MOVING_MODE_PIN, HIGH);
+    randomSeed(analogRead(0));
     robotMode = MOVING_MODE;
     servoPos = SERVO_FORWARD_TO_RIGHT;
     servo.attach(SERVO_PIN);

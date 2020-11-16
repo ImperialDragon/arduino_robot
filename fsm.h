@@ -1,5 +1,4 @@
 #include "robot_control.h"
-#include "config.h"
 typedef void(*task)(); 
 
 //forward declaration
@@ -19,16 +18,25 @@ void standModeWorld();
 
 //Variable declaration
 static uint8_t state = MOVE_FORWARD;
+static uint8_t isPathBlocked[] = {EMPTY,EMPTY}; //left, right
 static uint8_t worldState = NO_OBJECTS; 
 static uint64_t millisSensor = DEFAULT_VALUE;
 static uint64_t millisServo = DEFAULT_VALUE;
 static uint64_t millisStateTask = DEFAULT_VALUE;
 static uint64_t millisCurrent = DEFAULT_VALUE;
-task stateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
-task worldTasks[] = {&movingModeWorld, &standModeWorld};
+static uint64_t moveMillis = 0;
+static uint64_t backwardMillis = 0;
+static task stateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
+static task worldTasks[] = {&movingModeWorld, &standModeWorld};
 void updateTime(uint64_t *millisVar)
 {
   *millisVar = millis();
+}
+
+void clearPathIsBlocked()
+{
+  isPathBlocked[0] = EMPTY;
+  isPathBlocked[1] = EMPTY;
 }
 
 void updateAllTime()
@@ -59,7 +67,7 @@ void stopMoving()
 
 void moveForward()
 {
-  if (worldState >= 1 && worldState <= 3)
+  if (worldState == COLLISION)
   {
     state = STOP;
   }
@@ -76,42 +84,77 @@ void moveBackward()
 
 void servoScan()
 {
-  uint64_t millisCurrent = 0;
   updateTime(&millisCurrent);
-  performTask(&changeServoPos, millisCurrent, &millisSensor, SERVO_DELAY);
+  performTask(&changeServoPos, millisCurrent, &millisServo, SERVO_DELAY);
 }
 
 void moveLeft()
 {
   robotMove(MOVE_LEFT, SLOW_MOTOR_SPEED);
+  if (millisCurrent - moveMillis >= 1000)
+  {
+    state = MOVE_FORWARD;
+  }
 }
 
 void moveRight()
 {
   robotMove(MOVE_RIGHT, SLOW_MOTOR_SPEED);
+  if (millisCurrent - moveMillis >= 1000)
+  {
+    state = MOVE_FORWARD;
+  }
 }
 
 void movingModeWorld()
 {
   updateTime(&millisCurrent);
-  performTask(&sensorScan, millisCurrent, &millisSensor, SENSOR_DELAY);
-  uint16_t curDistance = getDistance();
-  if (curDistance <= COLLIDE_RANGE && curDistance >= 0)
-    {
-      switch(getServoPos())
+  if (state != MOVE_LEFT && state != MOVE_RIGHT)
+  {
+    performTask(&sensorScan, millisCurrent, &millisSensor, SENSOR_DELAY);
+    uint16_t curDistance = getDistance();
+    if (curDistance <= COLLIDE_RANGE && curDistance >= 0)
       {
-        case SERVO_LEFT:
-          worldState = OBJECT_ON_LEFT;
-          break;
-        case SERVO_FORWARD_TO_LEFT:
-        case SERVO_FORWARD_TO_RIGHT:
-          worldState = OBJECT_ON_FORWARD;
-          break;
-        case SERVO_RIGHT:
-          worldState = OBJECT_ON_RIGHT;
-          break;
+        switch(getServoPos())
+        {
+          case SERVO_LEFT:
+            isPathBlocked[LEFT] = COLLISION;
+            break;
+          case SERVO_FORWARD_TO_LEFT:
+          case SERVO_FORWARD_TO_RIGHT:
+            worldState = COLLISION;
+            break;
+          case SERVO_RIGHT:
+            isPathBlocked[RIGHT] = COLLISION;
+            break;
+        }
       }
+      else
+      {
+        worldState = NO_OBJECTS;
+      }
+  }
+  if (worldState == COLLISION)
+  {
+    updateTime(&moveMillis);
+    if (isPathBlocked[LEFT] != EMPTY || isPathBlocked[RIGHT] != EMPTY) rotateServo(SERVO_FORWARD_TO_LEFT);
+    if (isPathBlocked[RIGHT] == COLLISION && isPathBlocked[LEFT] == COLLISION)
+    {
+      clearPathIsBlocked();
+      state = MOVE_BACKWARD;
     }
+    else if (isPathBlocked[RIGHT] == NO_OBJECTS && isPathBlocked[LEFT] == NO_OBJECTS && state != MOVE_BACKWARD)
+    {
+      worldState = NO_OBJECTS;
+      rotateServo(SERVO_FORWARD_TO_LEFT);
+      state = random(2,4);
+    }
+    else if (isPathBlocked[RIGHT] == NO_OBJECTS && isPathBlocked[LEFT] != EMPTY)
+    { 
+      worldState = NO_OBJECTS;
+      state = 1;
+    }
+  }
 }
 
 void standModeWorld()
@@ -139,7 +182,7 @@ void standModeWorld()
 
 void realWorld()
 {
-  worldTasks[worldState]();
+  worldTasks[getRobotMode()]();
 }
 
 void performTaskByState()
