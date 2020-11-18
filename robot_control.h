@@ -1,18 +1,27 @@
+/*
+  robot_control.h is used for basic robot functions and pin intialization.
+  Variables are used to store robot parameters. Exam.: servoPos - servo position
+*/
 #include "config.h"
 #include <Servo.h>
 
 //forward declaration
-void stopMotors();
 void robotMove();
-uint16_t getDistance();
+void checkRobotMode();
+void stopMotors();
+void initialize();
+void rotateServo(uint8_t rotation_angle);
+void changeServoPos();
+void sensorScan();
+int16_t getDistance();
 uint8_t getServoPos();
 uint8_t getRobotMode();
 
 //variables
 static Servo servo;
+static int16_t distance;
 static uint8_t servoPos;
 static uint8_t robotMode;
-static uint16_t distance = DEFAULT_DISTANCE;
 static bool modeLock = false;
 
 void robotMove(uint8_t direction, uint8_t speed)
@@ -20,14 +29,14 @@ void robotMove(uint8_t direction, uint8_t speed)
     switch(direction)
     {
         case MOVE_BACKWARD:
-            digitalWrite(RIGHT_MOTOR_B1A_PIN, LOW);
-            analogWrite(RIGHT_MOTOR_B1B_PIN, speed);
+            analogWrite(RIGHT_MOTOR_B1A_PIN, speed);
+            digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
             digitalWrite(LEFT_MOTOR_A1A_PIN, LOW);
             analogWrite(LEFT_MOTOR_A1B_PIN, speed);
             break;
         case MOVE_FORWARD:
-            analogWrite(RIGHT_MOTOR_B1A_PIN, speed);
-            digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
+            digitalWrite(RIGHT_MOTOR_B1B_PIN, speed);
+            analogWrite(RIGHT_MOTOR_B1A_PIN, LOW);
             analogWrite(LEFT_MOTOR_A1A_PIN, speed);
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
             break;
@@ -72,9 +81,9 @@ void checkRobotMode()
         digitalWrite(MOVING_MODE_PIN, HIGH);
         break;
     }
-    Serial.print(robotMode);
    }
 }
+
 
 void stopMotors()
 {
@@ -86,27 +95,27 @@ void stopMotors()
 
 void initialize()
 {
-    Serial.begin(9600);
-    pinMode(RIGHT_MOTOR_B1B_PIN, OUTPUT);
-    pinMode(RIGHT_MOTOR_B1A_PIN, OUTPUT);
-    pinMode(LEFT_MOTOR_A1A_PIN, OUTPUT);
-    pinMode(LEFT_MOTOR_A1B_PIN, OUTPUT);
-    pinMode(SENSOR_TRIG_PIN, INPUT);
-    pinMode(SENSOR_ECHO_PIN, OUTPUT);
-    pinMode(MOVING_MODE_PIN, OUTPUT);
-    pinMode(STAND_MODE_PIN, INPUT); 
-    digitalWrite(MOVING_MODE_PIN, HIGH);
-    randomSeed(analogRead(0));
-    robotMode = MOVING_MODE;
-    servoPos = SERVO_FORWARD_TO_RIGHT;
-    servo.attach(SERVO_PIN);
-    servo.write(servoPos);                                                                                                           
+  robotMode = MOVING_MODE;
+  servoPos = SERVO_FORWARD_TO_LEFT;
+  distance = DEFAULT_DISTANCE;
+  randomSeed(analogRead(RANDOM_VALUE_PIN));
+  pinMode(RIGHT_MOTOR_B1B_PIN, OUTPUT);
+  pinMode(RIGHT_MOTOR_B1A_PIN, OUTPUT);
+  pinMode(LEFT_MOTOR_A1A_PIN, OUTPUT);
+  pinMode(LEFT_MOTOR_A1B_PIN, OUTPUT);
+  pinMode(SENSOR_TRIG_PIN, OUTPUT);
+  pinMode(SENSOR_ECHO_PIN, INPUT);
+  pinMode(MOVING_MODE_PIN, OUTPUT);
+  pinMode(STAND_MODE_PIN, INPUT); 
+  digitalWrite(MOVING_MODE_PIN, HIGH);
+  servo.attach(SERVO_PIN);
+  servo.write(servoPos);                                                                                                           
 }
 
-void rotateServo(u8 rotation_angle)
+void rotateServo(uint8_t rotation_angle)
 {
-      servoPos = rotation_angle;
-      servo.write(servoPos);
+  servoPos = rotation_angle;
+  servo.write(servoPos);
 }
 
 void changeServoPos()
@@ -133,20 +142,21 @@ void changeServoPos()
 
 void sensorScan()
 {
-  /*Task: Implement ultransound signal sending(sensor) and get distance between robot and object.
-       Bonus task: Try to find any solution where you can remove delay(10);
-       distance shoud assigned to variable distance
-     */
+  int64_t duration = 0;
+  digitalWrite(SENSOR_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(SENSOR_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(SENSOR_TRIG_PIN, LOW);
+  duration = pulseIn(SENSOR_ECHO_PIN, HIGH);
+  distance = (duration / 2) / 29.1;
 }
 
-void setDistance(int inDistance)
+int16_t getDistance()
 {
-  distance = inDistance;
-}
-
-uint16_t getDistance()
-{
-  return distance;
+  int16_t curDistance = distance;
+  distance = DEFAULT_DISTANCE;
+  return curDistance;
 }
 
 uint8_t getServoPos()
