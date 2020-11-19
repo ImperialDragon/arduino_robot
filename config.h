@@ -32,12 +32,13 @@
 //servo angles
 #define SERVO_RIGHT 170
 #define SERVO_LEFT 0
-#define SERVO_FORWARD_TO_LEFT 60
-#define SERVO_FORWARD_TO_RIGHT 61
+#define SERVO_FORWARD_TO_LEFT 85
+#define SERVO_FORWARD_TO_RIGHT 86
 
 //multitasking constants
 #define SENSOR_DELAY 1050
 #define SERVO_DELAY 1050
+#define SENSOR_FAST_DELAY 150
 #define CHANGE_STATE_TO_SCAN_DELAY 1000
 #define CHANGE_STATE_TO_FORWARD_DELAY 1000
 
@@ -48,8 +49,8 @@
 #define EMPTY 3
 
 //Collide range
-#define COLLIDE_RANGE 12
-#define STANDMODE_COLLIDE_RANGE 7
+#define COLLIDE_RANGE 22
+#define STANDMODE_COLLIDE_RANGE 15
 
 //Distance const
 #define DEFAULT_DISTANCE -1

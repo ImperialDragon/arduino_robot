@@ -115,27 +115,30 @@ void movingModeWorld()
 {
   bool isColliding = false;
   int16_t curDistance = DEFAULT_DISTANCE;
-  if (worldState != COLLISION_EVERYWHERE)
+  if (worldState == NO_OBJECTS)
+  {
+    performTask(&sensorScan, &millisSensor, SENSOR_FAST_DELAY);
+    curDistance = getDistance();
+    isColliding = (curDistance <= COLLIDE_RANGE && curDistance >= 0);
+  }
+  if (state == MOVE_FORWARD && worldState == NO_OBJECTS) { 
+    if (isColliding) worldState = COLLISION; }
+  else if (worldState == COLLISION)
   {
     performTask(&sensorScan, &millisSensor, SENSOR_DELAY);
     curDistance = getDistance();
-    bool isColliding = (curDistance <= COLLIDE_RANGE && curDistance >= 0);
-  }
-  if (state == MOVE_FORWARD && worldState == NO_OBJECTS)
-  {
-    if (curDistance != DEFAULT_DISTANCE) Serial.println(curDistance);
-    if (isColliding) worldState = COLLISION;
-  }
-  else if (worldState == COLLISION)
-  {
-    switch(getServoPos())
+    isColliding = (curDistance <= COLLIDE_RANGE && curDistance >= 0);
+    if (curDistance != DEFAULT_DISTANCE)
     {
-       case SERVO_LEFT:
-         pathState[LEFT] = (isColliding) ? COLLISION : NO_OBJECTS;
-         break;
-       case SERVO_RIGHT:
-         pathState[RIGHT] = (isColliding) ? COLLISION : NO_OBJECTS;
-         break;
+      switch(getServoPos())
+        {
+          case SERVO_LEFT:
+            pathState[LEFT] = (isColliding) ? COLLISION : NO_OBJECTS;
+            break;
+          case SERVO_RIGHT:
+            pathState[RIGHT] = (isColliding) ? COLLISION : NO_OBJECTS;      
+            break;
+        }
     }
     if (pathState[RIGHT] == COLLISION && pathState[LEFT] == COLLISION)
     {
@@ -148,9 +151,9 @@ void movingModeWorld()
     if (pathState[LEFT] != EMPTY && pathState[RIGHT] != EMPTY)
     {
       rotateServo(SERVO_FORWARD_TO_LEFT);
-      clearPathStates();
       updateAllTime();
       if (pathState[RIGHT] == NO_OBJECTS || pathState[LEFT] == NO_OBJECTS) worldState = NO_OBJECTS;
+      clearPathStates();
     }
   }
 }
@@ -163,7 +166,7 @@ void standModeWorld()
     rotateServo(SERVO_FORWARD_TO_LEFT);
     updateTime(&millisSensor);
   }
-  performTask(&sensorScan, &millisSensor, SENSOR_DELAY);
+  performTask(&sensorScan, &millisSensor, SENSOR_FAST_DELAY);
   curDistance = getDistance();
   if (curDistance <= STANDMODE_COLLIDE_RANGE && curDistance >= 0)
   {

@@ -29,19 +29,19 @@ void robotMove(uint8_t direction, uint8_t speed)
     switch(direction)
     {
         case MOVE_BACKWARD:
-            analogWrite(RIGHT_MOTOR_B1A_PIN, speed);
+            analogWrite(RIGHT_MOTOR_B1A_PIN, speed + 25);
             digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
             digitalWrite(LEFT_MOTOR_A1A_PIN, LOW);
-            analogWrite(LEFT_MOTOR_A1B_PIN, speed);
+            analogWrite(LEFT_MOTOR_A1B_PIN, speed - 110);
             break;
         case MOVE_FORWARD:
-            digitalWrite(RIGHT_MOTOR_B1B_PIN, speed);
+            digitalWrite(RIGHT_MOTOR_B1B_PIN, speed + 25);
             analogWrite(RIGHT_MOTOR_B1A_PIN, LOW);
-            analogWrite(LEFT_MOTOR_A1A_PIN, speed);
+            analogWrite(LEFT_MOTOR_A1A_PIN, speed - 110);
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
             break;
         case MOVE_LEFT:
-            analogWrite(RIGHT_MOTOR_B1A_PIN, speed);
+            analogWrite(RIGHT_MOTOR_B1A_PIN, speed + 25);
             digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
             digitalWrite(LEFT_MOTOR_A1A_PIN, LOW);
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
@@ -49,7 +49,7 @@ void robotMove(uint8_t direction, uint8_t speed)
         case MOVE_RIGHT:
             digitalWrite(RIGHT_MOTOR_B1A_PIN, LOW);
             digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
-            analogWrite(LEFT_MOTOR_A1A_PIN, speed);
+            analogWrite(LEFT_MOTOR_A1A_PIN, speed - 110);
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
             break;
         default:
@@ -65,7 +65,6 @@ void checkRobotMode()
    if (modeLock == false && digitalValue == HIGH) modeLock = true;
    else if(modeLock == true && digitalValue == LOW) 
    {
-    modeLock = false;
     switch(readPin)
     {
       case STAND_MODE_PIN:
@@ -81,6 +80,7 @@ void checkRobotMode()
         digitalWrite(MOVING_MODE_PIN, HIGH);
         break;
     }
+    modeLock = false;
    }
 }
 
