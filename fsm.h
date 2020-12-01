@@ -15,7 +15,8 @@ void moveForward();
 void moveBackward();
 void moveLeft();
 void moveRight();
-void servoScan();
+void servoStandScan();
+void servoMoveScan();
 void initRobotTasks();
 void realWorld();
 void performTaskByState();
@@ -32,12 +33,12 @@ static uint64_t moveMillis = 0;
 static int16_t curDistance = DEFAULT_DISTANCE;
 
 //states
-static uint8_t state = MOVE_FORWARD;
+static uint8_t state = MOVE_FORWARD_STATE;
 static uint8_t worldState = NO_OBJECTS;
 static uint8_t pathState[] = {EMPTY,EMPTY}; //left, right
 
 //robot tasks
-static task stateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoScan};
+static task stateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoStandScan, &servoMoveScan};
 static task worldTasks[] = {&movingModeWorld, &standModeWorld};
 
 void updateTime(uint64_t *millisVar)
@@ -72,43 +73,53 @@ void performTask(task myTask, uint64_t *elapsedTime, uint64_t constant)
 void stopMoving()
 {
   stopMotors();
-  if (getRobotMode() == MOVING_MODE) state = SERVO_SCAN;
+  if (getRobotMode() == MOVING_MODE)
+  {
+    if (worldState == NO_OBJECTS) worldState = COLLISION; //used for correct mode changing
+    state = SERVO_STAND_SCAN_STATE;
+  }
 }
 
 void moveForward()
 {
-  if (worldState == NO_OBJECTS) robotMove(MOVE_FORWARD, HIGH_MOTOR_SPEED);
-  else state = STOP;
+  robotMove(MOVE_FORWARD, HIGH_MOTOR_SPEED);
+  state = SERVO_MOVE_SCAN_STATE;
 }
 
 void moveBackward()
 {
   robotMove(MOVE_BACKWARD, NORMAL_MOTOR_SPEED);
-  if (getRobotMode() == MOVING_MODE && worldState == COLLISION_EVERYWHERE) 
+  if (getRobotMode() == MOVING_MODE) 
   {
     performTask([]() {
       updateAllTime();
       worldState = COLLISION;
-      state = STOP;
-      }, &moveMillis, CHANGE_STATE_TO_SCAN_DELAY);
+      state = STOP_STATE;
+      }, &moveMillis, CHANGE_STATE_TO_STAND_SCAN_DELAY);
   }
 }
 
 void moveLeft()
 {
   robotMove(MOVE_LEFT, SLOW_MOTOR_SPEED);
-  performTask([](){state = MOVE_FORWARD;}, &moveMillis, CHANGE_STATE_TO_FORWARD_DELAY);
+  performTask([](){state = MOVE_FORWARD_STATE;}, &moveMillis, CHANGE_STATE_TO_FORWARD_DELAY);
 }
 
 void moveRight()
 {
   robotMove(MOVE_RIGHT, SLOW_MOTOR_SPEED);
-  performTask([](){state = MOVE_FORWARD;}, &moveMillis, CHANGE_STATE_TO_FORWARD_DELAY);
+  performTask([](){state = MOVE_FORWARD_STATE;}, &moveMillis, CHANGE_STATE_TO_FORWARD_DELAY);
 }
 
-void servoScan()
+void servoStandScan()
 {
   performTask(&changeServoPos, &millisServo, SERVO_DELAY);
+}
+
+void servoMoveScan()
+{
+  if (worldState == NO_OBJECTS) performTask(&smallChangeServoPos, &millisServo, SERVO_FAST_DELAY);
+  else state = STOP_STATE;
 }
 
 void movingModeWorld()
@@ -121,8 +132,14 @@ void movingModeWorld()
     curDistance = getDistance();
     isColliding = (curDistance <= COLLIDE_RANGE && curDistance >= 0);
   }
-  if (state == MOVE_FORWARD && worldState == NO_OBJECTS) { 
-    if (isColliding) worldState = COLLISION; }
+  if (state == SERVO_MOVE_SCAN_STATE && worldState == NO_OBJECTS) 
+  { 
+    if (isColliding) 
+    {
+      worldState = COLLISION;
+      rotateServo(SERVO_FORWARD_TO_LEFT);
+    }
+  }
   else if (worldState == COLLISION)
   {
     performTask(&sensorScan, &millisSensor, SENSOR_DELAY);
@@ -133,27 +150,32 @@ void movingModeWorld()
       switch(getServoPos())
         {
           case SERVO_LEFT:
-            pathState[LEFT] = (isColliding) ? COLLISION : NO_OBJECTS;
+          case SERVO_HALF_LEFT:
+            if (pathState[LEFT] == EMPTY || pathState[LEFT] == NO_OBJECTS) pathState[LEFT] = (isColliding) ? COLLISION : NO_OBJECTS;
             break;
           case SERVO_RIGHT:
-            pathState[RIGHT] = (isColliding) ? COLLISION : NO_OBJECTS;      
+          case SERVO_HALF_RIGHT:
+            if (pathState[RIGHT] == EMPTY || pathState[RIGHT] == NO_OBJECTS) pathState[RIGHT] = (isColliding) ? COLLISION : NO_OBJECTS;      
             break;
         }
     }
-    if (pathState[RIGHT] == COLLISION && pathState[LEFT] == COLLISION)
+    if (getServoPos() == SERVO_HALF_RIGHT_TO_LEFT)
     {
-      worldState = COLLISION_EVERYWHERE;
-      state = MOVE_BACKWARD;
-    }
-    else if (pathState[RIGHT] == NO_OBJECTS && pathState[LEFT] == NO_OBJECTS) state = random(2,4);
-    else if (pathState[RIGHT] == NO_OBJECTS && pathState[LEFT] == COLLISION) state = MOVE_RIGHT;
-    else if (pathState[LEFT] == NO_OBJECTS && pathState[RIGHT] == COLLISION) state = MOVE_LEFT;
-    if (pathState[LEFT] != EMPTY && pathState[RIGHT] != EMPTY)
-    {
-      rotateServo(SERVO_FORWARD_TO_LEFT);
-      updateAllTime();
-      if (pathState[RIGHT] == NO_OBJECTS || pathState[LEFT] == NO_OBJECTS) worldState = NO_OBJECTS;
-      clearPathStates();
+      if (pathState[RIGHT] == COLLISION && pathState[LEFT] == COLLISION)
+      {
+        worldState = COLLISION_EVERYWHERE;
+        state = MOVE_BACKWARD_STATE;
+      }
+      else if (pathState[RIGHT] == NO_OBJECTS && pathState[LEFT] == NO_OBJECTS) state = random(2,4);
+      else if (pathState[RIGHT] == NO_OBJECTS && pathState[LEFT] == COLLISION) state = MOVE_RIGHT_STATE;
+      else if (pathState[LEFT] == NO_OBJECTS && pathState[RIGHT] == COLLISION) state = MOVE_LEFT_STATE;
+      if (pathState[LEFT] != EMPTY && pathState[RIGHT] != EMPTY)
+      {
+        rotateServo(SERVO_FORWARD_TO_LEFT);
+        updateAllTime();
+        if (pathState[RIGHT] == NO_OBJECTS || pathState[LEFT] == NO_OBJECTS) worldState = NO_OBJECTS;
+        clearPathStates();
+      }
     }
   }
 }
@@ -166,17 +188,17 @@ void standModeWorld()
     rotateServo(SERVO_FORWARD_TO_LEFT);
     updateTime(&millisSensor);
   }
-  performTask(&sensorScan, &millisSensor, SENSOR_FAST_DELAY);
+  performTask(&sensorScan, &millisSensor, SENSOR_ULTRA_FAST_DELAY);
   curDistance = getDistance();
   if (curDistance <= STANDMODE_COLLIDE_RANGE && curDistance >= 0)
   {
-    state = MOVE_BACKWARD; 
+    state = MOVE_BACKWARD_STATE; 
     worldState = COLLISION;
   }
   else if (curDistance != DEFAULT_DISTANCE)
   {
     worldState = NO_OBJECTS;
-    state = STOP;
+    state = STOP_STATE;
   }
 }
 

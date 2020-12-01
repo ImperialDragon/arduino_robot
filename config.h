@@ -11,14 +11,21 @@
 #define SENSOR_TRIG_PIN 12
 #define SENSOR_ECHO_PIN 13
 
-//Move directions and states
+//move directions
 #define STOP 0
 #define MOVE_FORWARD 1
 #define MOVE_LEFT 2
 #define MOVE_RIGHT 3
 #define MOVE_BACKWARD 4
-//Just states
-#define SERVO_SCAN 5
+
+//states
+#define STOP_STATE 0
+#define MOVE_FORWARD_STATE 1
+#define MOVE_LEFT_STATE 2
+#define MOVE_RIGHT_STATE 3
+#define MOVE_BACKWARD_STATE 4
+#define SERVO_STAND_SCAN_STATE 5
+#define SERVO_MOVE_SCAN_STATE 6
 
 //motor speed
 #define SLOW_MOTOR_SPEED 190
@@ -30,16 +37,25 @@
 #define STAND_MODE 1
 
 //servo angles
-#define SERVO_RIGHT 170
-#define SERVO_LEFT 0
-#define SERVO_FORWARD_TO_LEFT 85
-#define SERVO_FORWARD_TO_RIGHT 86
+#define SERVO_RIGHT 0
+#define SERVO_HALF_RIGHT 48
+#define SERVO_HALF_RIGHT_TO_LEFT 49
+#define SERVO_HALF_LEFT 143
+#define SERVO_HALF_LEFT_TO_RIGHT 142
+#define SERVO_LEFT 180
+#define SERVO_FORWARD_TO_LEFT 95
+#define SERVO_FORWARD_TO_RIGHT 96
+//servo half quater angles
+#define SERVO_QUATER_HALF_RIGHT 65
+#define SERVO_QUATER_HALF_LEFT 125
 
 //multitasking constants
-#define SENSOR_DELAY 1050
-#define SERVO_DELAY 1050
-#define SENSOR_FAST_DELAY 150
-#define CHANGE_STATE_TO_SCAN_DELAY 1000
+#define SENSOR_DELAY 600
+#define SERVO_DELAY 600
+#define SENSOR_FAST_DELAY 280
+#define SENSOR_ULTRA_FAST_DELAY 60
+#define SERVO_FAST_DELAY 280
+#define CHANGE_STATE_TO_STAND_SCAN_DELAY 800
 #define CHANGE_STATE_TO_FORWARD_DELAY 1000
 
 //world states

@@ -29,19 +29,19 @@ void robotMove(uint8_t direction, uint8_t speed)
     switch(direction)
     {
         case MOVE_BACKWARD:
-            analogWrite(RIGHT_MOTOR_B1A_PIN, speed + 25);
+            analogWrite(RIGHT_MOTOR_B1A_PIN, speed);
             digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
             digitalWrite(LEFT_MOTOR_A1A_PIN, LOW);
-            analogWrite(LEFT_MOTOR_A1B_PIN, speed - 110);
+            analogWrite(LEFT_MOTOR_A1B_PIN, speed);
             break;
         case MOVE_FORWARD:
-            digitalWrite(RIGHT_MOTOR_B1B_PIN, speed + 25);
+            digitalWrite(RIGHT_MOTOR_B1B_PIN, speed);
             analogWrite(RIGHT_MOTOR_B1A_PIN, LOW);
-            analogWrite(LEFT_MOTOR_A1A_PIN, speed - 110);
+            analogWrite(LEFT_MOTOR_A1A_PIN, speed);
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
             break;
         case MOVE_LEFT:
-            analogWrite(RIGHT_MOTOR_B1A_PIN, speed + 25);
+            analogWrite(RIGHT_MOTOR_B1A_PIN, speed);
             digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
             digitalWrite(LEFT_MOTOR_A1A_PIN, LOW);
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
@@ -49,7 +49,7 @@ void robotMove(uint8_t direction, uint8_t speed)
         case MOVE_RIGHT:
             digitalWrite(RIGHT_MOTOR_B1A_PIN, LOW);
             digitalWrite(RIGHT_MOTOR_B1B_PIN, LOW);
-            analogWrite(LEFT_MOTOR_A1A_PIN, speed - 110);
+            analogWrite(LEFT_MOTOR_A1A_PIN, speed);
             digitalWrite(LEFT_MOTOR_A1B_PIN, LOW);
             break;
         default:
@@ -123,19 +123,50 @@ void changeServoPos()
   switch (servoPos)
   {
     case SERVO_LEFT:
+      rotateServo(SERVO_HALF_LEFT_TO_RIGHT);
+      break;
+    case SERVO_HALF_LEFT_TO_RIGHT:
       rotateServo(SERVO_FORWARD_TO_RIGHT);
       break;
-    case SERVO_FORWARD_TO_LEFT:
-      rotateServo(SERVO_LEFT);
-      break;
     case SERVO_FORWARD_TO_RIGHT:
+      rotateServo(SERVO_HALF_RIGHT);
+      break;
+    case SERVO_HALF_RIGHT:
       rotateServo(SERVO_RIGHT);
       break;
     case SERVO_RIGHT:
+      rotateServo(SERVO_HALF_RIGHT_TO_LEFT);
+      break;
+    case SERVO_HALF_RIGHT_TO_LEFT:  
       rotateServo(SERVO_FORWARD_TO_LEFT);
       break;
+    case SERVO_FORWARD_TO_LEFT:
+      rotateServo(SERVO_HALF_LEFT);
+      break;
+    case SERVO_HALF_LEFT: 
+      rotateServo(SERVO_LEFT);
+      break;
     default:
+      rotateServo(SERVO_FORWARD_TO_LEFT);
+      break;
+  }
+}
+
+void smallChangeServoPos()
+{
+  switch (servoPos)
+  {
+    case SERVO_QUATER_HALF_LEFT:
       rotateServo(SERVO_FORWARD_TO_RIGHT);
+      break;
+    case SERVO_FORWARD_TO_RIGHT:
+      rotateServo(SERVO_QUATER_HALF_RIGHT);
+      break;
+    case SERVO_QUATER_HALF_RIGHT:
+      rotateServo(SERVO_QUATER_HALF_LEFT);
+      break;
+    case SERVO_FORWARD_TO_LEFT:
+      rotateServo(SERVO_QUATER_HALF_LEFT);
       break;
   }
 }
