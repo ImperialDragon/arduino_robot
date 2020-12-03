@@ -1,5 +1,6 @@
 # arduino robot (Semestral work)
 Patrik Zahálka => Hardware engineer + some code
+
 Alexej Fedorenko => Code
 
 ## View from above
