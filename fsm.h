@@ -38,8 +38,8 @@ static uint8_t worldState = NO_OBJECTS;
 static uint8_t pathState[] = {EMPTY,EMPTY}; //left, right
 
 //robot tasks
-static task stateTasks[] = {&stopMoving, &moveForward, &moveLeft, &moveRight, &moveBackward, &servoStandScan, &servoMoveScan};
-static task worldTasks[] = {&movingModeWorld, &standModeWorld};
+static task stateTasks[] = {(task) stopMoving, (task) moveForward, (task) moveLeft, (task) moveRight, (task) moveBackward, (task) servoStandScan, (task) servoMoveScan};
+static task worldTasks[] = {(task) movingModeWorld, (task) standModeWorld};
 
 void updateTime(uint64_t *millisVar)
 {
